@@ -1,51 +1,69 @@
-# RSVP → Google Sheet setup
+# RSVP via Google Forms (recommended)
 
-This site sends RSVPs to your Google Sheet through a Google Apps Script web app. A normal Sheet edit URL cannot be written to securely from the browser.
+Easiest working setup: guests fill a Google Form. Responses land in a Google Sheet automatically. No Apps Script deploy needed.
 
-**Target spreadsheet ID:** `15aaEF6TaqceACBlZZJigG_RjZpHSL-zU8CORFGEi_f0`  
-**Worksheet name:** `RSVP`  
-**Script source in this repo:** `google-apps-script/Code.gs`
+## 1. Create the form
 
-## Steps
+1. Open [Google Forms](https://forms.google.com) → **Blank form**
+2. Title it e.g. **Maryam & Ahmed RSVP**
+3. Add questions that match the invite (suggested):
 
-1. Open the Google Sheet:  
-   https://docs.google.com/spreadsheets/d/15aaEF6TaqceACBlZZJigG_RjZpHSL-zU8CORFGEi_f0/edit
+| Question | Type |
+|----------|------|
+| Your Name | Short answer (Required) |
+| Will you attend? | Multiple choice: Joyfully yes / Regretfully no |
+| Number of guests | Multiple choice: 1 / 2 / 3 / 4 |
+| Phone number | Short answer |
+| Song request | Short answer |
+| A message for us | Paragraph |
 
-2. In the Sheet menu choose **Extensions → Apps Script**.
+4. Click **Responses** → link / create a Sheet if you want a spreadsheet of replies (optional but useful).
 
-3. Delete any placeholder code in `Code.gs`, then paste the full contents of `google-apps-script/Code.gs` from this project.
+5. Click **Send** → **Link** icon → copy the form link  
+   Example: `https://docs.google.com/forms/d/e/XXXX/viewform?usp=sf_link`
 
-4. Click **Save** (disk icon) and name the project if prompted (e.g. `Wedding RSVP`).
+6. Turn it into an **embed** URL by ensuring it ends with `viewform?embedded=true`:
 
-5. Click **Deploy → New deployment**.
-
-6. Click the gear / type selector and choose **Web app**.
-
-7. Configure:
-   - **Description:** `RSVP endpoint` (optional)
-   - **Execute as:** Me (your Google account)
-   - **Who has access:** Anyone (or “Anyone with the link”, depending on the Google UI)
-
-8. Click **Deploy**. Authorize the script when Google asks (Review permissions → choose your account → Advanced → Go to … → Allow).
-
-9. Copy the **Web app URL** that ends in `/exec`  
-   Example shape: `https://script.google.com/macros/s/XXXXXXXX/exec`
-
-10. In the project root, create a `.env` file (or edit yours) with:
-
-```env
-VITE_RSVP_ENDPOINT=https://script.google.com/macros/s/XXXXXXXX/exec
+```text
+https://docs.google.com/forms/d/e/XXXX/viewform?embedded=true
 ```
 
-11. Restart the Vite dev server (or rebuild for production) so the env var is picked up.
+(Replace `XXXX` with your real form id. If the link has `?usp=sf_link`, replace that query with `?embedded=true`.)
 
-12. Open the invitation site, submit a test RSVP, and confirm a new row appears on the **RSVP** sheet with headers:
+## 2. Add the URL to the website
 
-| Timestamp | Name | Attendance | Guest Count | Phone | Song Request | Message | Submission ID | Page URL | User Agent |
+### Local
+
+Create a `.env` file in the project root:
+
+```env
+VITE_GOOGLE_FORM_URL=https://docs.google.com/forms/d/e/XXXX/viewform?embedded=true
+```
+
+Restart `npm run dev`.
+
+### Cloudflare Pages
+
+1. Pages project → **Settings** → **Environment variables**
+2. Add **Production** (and Preview if you want):
+   - Name: `VITE_GOOGLE_FORM_URL`
+   - Value: your embed URL
+3. **Redeploy** the site (Vite bakes env vars in at build time)
+
+## 3. Test
+
+1. Open the invite → RSVP → **Open the Doors**
+2. Fill the embedded form → Submit
+3. Confirm the response appears under the form’s **Responses** (and Sheet, if linked)
 
 ## Notes
 
-- If you change the script later, use **Deploy → Manage deployments → Edit → New version** so the same `/exec` URL keeps working.
-- The frontend only shows the flower success state after a JSON body with `"success": true`.
-- Without `VITE_RSVP_ENDPOINT`, the form shows a clear configuration error instead of a fake success.
-- Health check: open the `/exec` URL in a browser; you should see JSON like `{"ok":true,"service":"wedding-rsvp",...}`.
+- The site keeps the door animation; the form itself is Google’s embed inside your design.
+- Guests can also use **Open form in a new tab** if the iframe is awkward on their phone.
+- Without `VITE_GOOGLE_FORM_URL`, the RSVP section shows a clear “not configured” message instead of a broken form.
+
+---
+
+## Optional: Apps Script (advanced)
+
+The repo still includes `google-apps-script/Code.gs` if you later want a fully custom HTML form posting to your Sheet. Google Forms is simpler for most wedding invites.

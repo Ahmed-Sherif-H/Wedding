@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, type FormEvent, type ChangeEvent } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import heroKeyart from './imports/ChatGPT_Image_Aug_2__2026__02_22_39_PM.png'
 import palmSprite from './imports/palmgen-1.png'
 import cloud1 from './imports/Cloud_1.png'
@@ -20,7 +20,11 @@ const CLOUD_SRC: Record<CloudConfig['srcKey'], string> = {
   cloud6: cloud6x,
 }
 
-const RSVP_ENDPOINT = import.meta.env.VITE_RSVP_ENDPOINT as string | undefined
+/** Google Form embed URL — override with VITE_GOOGLE_FORM_URL in .env / Cloudflare if needed */
+const GOOGLE_FORM_URL = (
+  (import.meta.env.VITE_GOOGLE_FORM_URL as string | undefined)?.trim()
+  || 'https://docs.google.com/forms/d/e/1FAIpQLSd5Wf5q52HQ9YyOhXjGCw-J3yr_tnppWp_-K3PhouKvAHJgEQ/viewform?embedded=true'
+)
 
 // ─── Custom Cursor ────────────────────────────────────────────────────────────
 function CustomCursor() {
@@ -1285,111 +1289,27 @@ function PhotoUploadSection() {
   )
 }
 
-// ─── RSVP Section ─────────────────────────────────────────────────────────────
-interface RsvpData {
-  name: string
-  guests: string
-  phone: string
-  attendance: string
-  song: string
-  message: string
+// ─── RSVP Section (Google Form embed) ─────────────────────────────────────────
+function toGoogleFormEmbedUrl(raw: string): string {
+  try {
+    const url = new URL(raw)
+    if (url.pathname.includes('/viewform')) {
+      url.searchParams.set('embedded', 'true')
+      return url.toString()
+    }
+  } catch {
+    // fall through
+  }
+  return raw.includes('embedded=true') ? raw : `${raw}${raw.includes('?') ? '&' : '?'}embedded=true`
 }
-
-// Google Apps Script endpoint — set VITE_RSVP_ENDPOINT in .env
 
 function RSVPSection() {
   const { ref, visible } = useScrollReveal(0.1)
   const [doorOpen, setDoorOpen] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
-  const [sending, setSending] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [flowers, setFlowers] = useState<Array<{ id: number; x: number; y: number; emoji: string }>>([])
-  const [form, setForm] = useState<RsvpData>({ name: '', guests: '1', phone: '', attendance: 'yes', song: '', message: '' })
-
-  const celebrate = () => {
-    const flowerEmojis = ['🌸', '🌺', '🌼', '🌻', '🌹', '💐']
-    const newFlowers = Array.from({ length: 18 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      emoji: flowerEmojis[i % flowerEmojis.length],
-    }))
-    setFlowers(newFlowers)
-    setTimeout(() => setFlowers([]), 4000)
-  }
-
-  const onSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    if (sending) return
-
-    const name = form.name.trim()
-    if (!name) {
-      setError('Please enter your name.')
-      return
-    }
-
-    const guestCount = Number(form.guests)
-    if (!Number.isFinite(guestCount) || guestCount < 1) {
-      setError('Please select a valid guest count.')
-      return
-    }
-
-    if (!RSVP_ENDPOINT) {
-      setError('RSVP is not configured yet. Please contact the hosts directly.')
-      return
-    }
-
-    setSending(true)
-    setError(null)
-
-    const submissionId =
-      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2)}`
-
-    const params = new URLSearchParams()
-    params.set('timestamp', new Date().toISOString())
-    params.set('name', name)
-    params.set('attendance', form.attendance.trim())
-    params.set('guestCount', String(guestCount))
-    params.set('phone', form.phone.trim())
-    params.set('song', form.song.trim())
-    params.set('message', form.message.trim())
-    params.set('submissionId', submissionId)
-    params.set('pageUrl', window.location.href)
-    params.set('userAgent', navigator.userAgent)
-
-    try {
-      const response = await fetch(RSVP_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: params.toString(),
-      })
-
-      let data: { success?: boolean; message?: string; error?: string } | null = null
-      try {
-        data = await response.json()
-      } catch {
-        data = null
-      }
-
-      if (!response.ok || !data?.success) {
-        setError(data?.error ?? data?.message ?? 'Something went wrong. Please try again.')
-        return
-      }
-
-      setSubmitted(true)
-      celebrate()
-    } catch {
-      setError('Network error. Please check your connection and try again.')
-    } finally {
-      setSending(false)
-    }
-  }
-
-  const onChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setForm(f => ({ ...f, [e.target.name]: e.target.value }))
-  }
+  const embedUrl = GOOGLE_FORM_URL ? toGoogleFormEmbedUrl(GOOGLE_FORM_URL) : null
+  const openUrl = embedUrl
+    ? embedUrl.replace('embedded=true', 'usp=sf_link')
+    : null
 
   return (
     <section
@@ -1407,7 +1327,6 @@ function RSVPSection() {
           </h2>
         </div>
 
-        {/* Doors */}
         {!doorOpen && (
           <div ref={ref} className="relative flex justify-center mb-10">
             <div
@@ -1424,28 +1343,23 @@ function RSVPSection() {
                 transition: 'opacity 1s ease',
               }}
             >
-              {/* Building facade */}
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, #CC8860, #D4956A)' }} />
-              {/* Arch above doors */}
               <div style={{ position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', textAlign: 'center' }}>
                 <div style={{ width: 6, height: 6, background: '#F0B429', borderRadius: '50%', margin: '0 auto 8px', animation: 'lantern-flicker 2s infinite' }} />
                 <p className="font-serif italic" style={{ fontSize: 11, color: 'rgba(253,248,240,0.7)', letterSpacing: '0.15em' }}>RSVP</p>
               </div>
-              {/* Left door */}
               <div
                 className="absolute"
                 style={{ left: '10%', top: '25%', width: '38%', height: '60%', background: '#B87050', border: '2px solid rgba(100,50,20,0.4)', borderRadius: '4px 4px 0 0', transformOrigin: 'left center' }}
               >
                 <div style={{ width: 8, height: 8, background: '#F0B429', borderRadius: '50%', position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)' }} />
               </div>
-              {/* Right door */}
               <div
                 className="absolute"
                 style={{ right: '10%', top: '25%', width: '38%', height: '60%', background: '#B87050', border: '2px solid rgba(100,50,20,0.4)', borderRadius: '4px 4px 0 0', transformOrigin: 'right center' }}
               >
                 <div style={{ width: 8, height: 8, background: '#F0B429', borderRadius: '50%', position: 'absolute', left: 6, top: '50%', transform: 'translateY(-50%)' }} />
               </div>
-              {/* Arch steps at top of doors */}
               {[0, 1, 2, 3].map(i => (
                 <div key={i} style={{ position: 'absolute', top: `${22 + i * 3}%`, left: `${10 + i * 2}%`, right: `${10 + i * 2}%`, height: 3, background: 'rgba(155,80,40,0.4)' }} />
               ))}
@@ -1466,12 +1380,10 @@ function RSVPSection() {
           </div>
         )}
 
-        {/* Form */}
-        {doorOpen && !submitted && (
+        {doorOpen && (
           <div style={{ animation: 'scale-in 0.6s ease-out forwards' }}>
-            <form
-              onSubmit={onSubmit}
-              className="rounded-3xl p-8"
+            <div
+              className="rounded-3xl p-4 sm:p-6"
               style={{
                 background: 'rgba(253,248,240,0.92)',
                 border: '1px solid rgba(196,113,79,0.25)',
@@ -1479,175 +1391,59 @@ function RSVPSection() {
                 backdropFilter: 'blur(12px)',
               }}
             >
-              {/* Pixel decoration top */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginBottom: 24 }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginBottom: 16 }}>
                 {[...Array(7)].map((_, i) => (
                   <div key={i} style={{ width: 6, height: 6, background: i === 3 ? 'var(--terracotta)' : 'var(--sand)', opacity: i === 3 ? 1 : 0.5 }} />
                 ))}
               </div>
 
-              <div className="flex flex-col gap-5">
-                {[
-                  { label: 'Your Name', name: 'name', type: 'text', placeholder: 'Full name' },
-                  { label: 'Phone Number', name: 'phone', type: 'tel', placeholder: '+20 xxx xxx xxxx' },
-                  { label: 'Song Request', name: 'song', type: 'text', placeholder: 'A song you love...' },
-                ].map(f => (
-                  <div key={f.name}>
-                    <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.2em', color: 'var(--text-light)', marginBottom: 8 }}>
-                      {f.label.toUpperCase()}
-                    </label>
-                    <input
-                      type={f.type}
-                      name={f.name}
-                      placeholder={f.placeholder}
-                      value={form[f.name as keyof RsvpData]}
-                      onChange={onChange}
-                      required={f.name === 'name'}
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        borderRadius: 12,
-                        border: '1px solid rgba(196,113,79,0.25)',
-                        background: 'rgba(255,255,255,0.6)',
-                        color: 'var(--text-dark)',
-                        fontSize: 15,
-                        outline: 'none',
-                        fontFamily: 'Outfit, system-ui, sans-serif',
-                      }}
-                    />
-                  </div>
-                ))}
-
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.2em', color: 'var(--text-light)', marginBottom: 8 }}>
-                      GUESTS
-                    </label>
-                    <select
-                      name="guests"
-                      value={form.guests}
-                      onChange={onChange}
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        borderRadius: 12,
-                        border: '1px solid rgba(196,113,79,0.25)',
-                        background: 'rgba(255,255,255,0.6)',
-                        color: 'var(--text-dark)',
-                        fontSize: 15,
-                      }}
-                    >
-                      {[1, 2, 3, 4].map(n => <option key={n} value={n}>{n}</option>)}
-                    </select>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.2em', color: 'var(--text-light)', marginBottom: 8 }}>
-                      ATTENDANCE
-                    </label>
-                    <select
-                      name="attendance"
-                      value={form.attendance}
-                      onChange={onChange}
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px',
-                        borderRadius: 12,
-                        border: '1px solid rgba(196,113,79,0.25)',
-                        background: 'rgba(255,255,255,0.6)',
-                        color: 'var(--text-dark)',
-                        fontSize: 15,
-                      }}
-                    >
-                      <option value="yes">Joyfully yes</option>
-                      <option value="no">Regretfully no</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.2em', color: 'var(--text-light)', marginBottom: 8 }}>
-                    A MESSAGE FOR US
-                  </label>
-                  <textarea
-                    name="message"
-                    placeholder="Share your wishes..."
-                    value={form.message}
-                    onChange={onChange}
-                    rows={3}
+              {embedUrl ? (
+                <>
+                  <iframe
+                    title="RSVP form"
+                    src={embedUrl}
+                    width="100%"
+                    height="640"
+                    frameBorder={0}
+                    marginHeight={0}
+                    marginWidth={0}
                     style={{
+                      display: 'block',
                       width: '100%',
-                      padding: '12px 16px',
-                      borderRadius: 12,
-                      border: '1px solid rgba(196,113,79,0.25)',
-                      background: 'rgba(255,255,255,0.6)',
-                      color: 'var(--text-dark)',
-                      fontSize: 15,
-                      resize: 'vertical',
-                      fontFamily: 'Outfit, system-ui, sans-serif',
+                      minHeight: 560,
+                      border: 'none',
+                      borderRadius: 16,
+                      background: '#fff',
                     }}
-                  />
-                </div>
-
-                {error && (
-                  <p role="alert" style={{ fontSize: 14, color: '#B04030', textAlign: 'center', lineHeight: 1.5 }}>
-                    {error}
+                  >
+                    Loading…
+                  </iframe>
+                  {openUrl && (
+                    <p style={{ textAlign: 'center', marginTop: 16 }}>
+                      <a
+                        href={openUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-serif italic"
+                        style={{ color: 'var(--terracotta)', fontSize: 14 }}
+                      >
+                        Open form in a new tab ✦
+                      </a>
+                    </p>
+                  )}
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '32px 16px' }}>
+                  <p className="font-serif" style={{ fontSize: 20, color: 'var(--text-dark)', marginBottom: 12 }}>
+                    RSVP form coming soon
                   </p>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={sending}
-                  className="w-full py-4 rounded-full font-serif italic transition-all duration-300"
-                  style={{
-                    background: sending ? '#C4956A' : 'var(--terracotta)',
-                    color: '#FDF8F0',
-                    fontSize: 18,
-                    boxShadow: '0 4px 20px rgba(196,113,79,0.35)',
-                    marginTop: 8,
-                    opacity: sending ? 0.75 : 1,
-                  }}
-                >
-                  {sending ? 'Sending…' : 'Confirm Attendance ✦'}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Success */}
-        {submitted && (
-          <div
-            className="relative text-center rounded-3xl p-12"
-            style={{
-              background: 'rgba(253,248,240,0.92)',
-              border: '1px solid rgba(196,113,79,0.25)',
-              animation: 'scale-in 0.8s ease-out forwards',
-            }}
-          >
-            <div style={{ fontSize: 48, marginBottom: 16, animation: 'flower-bloom 0.8s ease-out forwards' }}>🌸</div>
-            <h3 className="font-serif" style={{ fontSize: 36, color: 'var(--text-dark)', marginBottom: 12 }}>
-              We can't wait to see you!
-            </h3>
-            <p className="font-serif italic" style={{ fontSize: 18, color: 'var(--text-mid)', opacity: 0.8 }}>
-              With love, Maryam &amp; Ahmed
-            </p>
-            {/* Floating flowers */}
-            {flowers.map(f => (
-              <div
-                key={f.id}
-                className="absolute"
-                style={{
-                  left: `${f.x}%`,
-                  top: `${f.y}%`,
-                  fontSize: 20,
-                  animation: 'flower-bloom 0.6s ease-out forwards, confetti-drop 3s ease-out forwards',
-                  animationDelay: `${Math.random() * 0.5}s`,
-                  pointerEvents: 'none',
-                }}
-              >
-                {f.emoji}
-              </div>
-            ))}
+                  <p style={{ fontSize: 14, color: 'var(--text-mid)', lineHeight: 1.6 }}>
+                    Add <code style={{ fontSize: 12 }}>VITE_GOOGLE_FORM_URL</code> to your environment.
+                    See <strong>RSVP_SETUP.md</strong> for the Google Forms steps.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
