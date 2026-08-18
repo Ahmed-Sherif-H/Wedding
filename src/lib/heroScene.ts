@@ -45,6 +45,31 @@ export function computeCoverLayout(
   return { width, height, left, top, scale: coverScale }
 }
 
+/** Mobile/portrait needs less zoom and a more centered crop so the scene isn't huge. */
+export function resolveHeroFraming(viewportW: number, viewportH: number) {
+  const isMobile = viewportW < 768
+  const isPortrait = viewportH >= viewportW
+
+  if (isMobile || isPortrait) {
+    return {
+      zoom: isMobile ? 1.05 : 1.1,
+      focusX: 0.45,
+      focusY: 1,
+    }
+  }
+
+  return {
+    zoom: HERO_SCENE.zoom,
+    focusX: HERO_SCENE.focusX,
+    focusY: HERO_SCENE.focusY,
+  }
+}
+
+export function computeHeroCoverLayout(viewportW: number, viewportH: number): CoverLayout {
+  const { zoom, focusX, focusY } = resolveHeroFraming(viewportW, viewportH)
+  return computeCoverLayout(viewportW, viewportH, HERO_SCENE.width, HERO_SCENE.height, zoom, focusX, focusY)
+}
+
 /** Normalized palm placement (easy to tweak). x/y are 0–1 in scene space; y is the ground line (base of trunk). */
 export type PalmConfig = {
   /** Horizontal position in scene (0 = left, 1 = right) */

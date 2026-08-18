@@ -70,11 +70,11 @@ body {
 }
 @keyframes flock-fly {
   0%   { transform: translateX(-12%) translateY(0px); }
-  18%  { transform: translateX(18%)  translateY(-18px); }
-  36%  { transform: translateX(36%)  translateY(7px); }
-  56%  { transform: translateX(56%)  translateY(-12px); }
-  76%  { transform: translateX(76%)  translateY(15px); }
-  100% { transform: translateX(112%) translateY(-4px); }
+  18%  { transform: translateX(18%)  translateY(-14px); }
+  36%  { transform: translateX(36%)  translateY(6px); }
+  56%  { transform: translateX(56%)  translateY(-10px); }
+  76%  { transform: translateX(76%)  translateY(12px); }
+  100% { transform: translateX(108%) translateY(-4px); }
 }
 @keyframes wings-up-fade {
   0%, 35%  { opacity: 1; }
@@ -166,6 +166,12 @@ body {
   image-rendering: pixelated;
 }
 
+@media (max-width: 767px) {
+  .hero-keyart {
+    object-position: 42% bottom !important;
+  }
+}
+
 .hero-palm {
   position: absolute;
   transform: translateX(-50%);
@@ -203,6 +209,15 @@ body {
   animation: sun-ambient 5s ease-in-out infinite;
 }
 
+.countdown-sun-disc {
+  position: relative;
+  width: clamp(72px, 12vw, 130px);
+  height: clamp(72px, 12vw, 130px);
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 38%, #FFF0D0 0%, #F0C878 40%, #D4A050 80%, #C08838 100%);
+  box-shadow: 0 0 28px 8px rgba(210,150,60,0.22), 0 0 60px 20px rgba(210,150,60,0.10);
+}
+
 .countdown-sun-halo {
   position: absolute;
   inset: clamp(-28px, -5vw, -50px);
@@ -214,11 +229,13 @@ body {
 }
 
 .countdown-sun-ray {
+  --ray-length: clamp(48px, 10vw, 120px);
   position: absolute;
   left: 50%;
   top: 50%;
-  height: 3px;
-  margin-top: -1.5px;
+  width: var(--ray-length);
+  height: 2.5px;
+  margin-top: -1.25px;
   transform-origin: 0 50%;
   border-radius: 2px;
   animation: ray-ambient 3.4s ease-in-out infinite;
@@ -229,9 +246,54 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: clamp(120px, 32%, 220px);
+  height: clamp(110px, 26%, 200px);
   z-index: 3;
   pointer-events: none;
+  overflow: hidden;
+}
+
+.countdown-dunes svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+@media (max-width: 767px) {
+  #countdown.countdown-section {
+    min-height: auto !important;
+    padding: 56px 16px 130px !important;
+  }
+
+  .countdown-sun {
+    bottom: 58px;
+    transform: translateX(-50%) scale(0.78);
+    transform-origin: center bottom;
+  }
+
+  .countdown-sun-disc {
+    width: 64px;
+    height: 64px;
+    box-shadow: 0 0 18px 6px rgba(210,150,60,0.2), 0 0 36px 12px rgba(210,150,60,0.08);
+  }
+
+  .countdown-sun-halo {
+    inset: -18px;
+  }
+
+  .countdown-sun-ray {
+    --ray-length: 34px;
+    height: 2px;
+  }
+
+  .countdown-dunes {
+    height: 96px;
+  }
+
+  .countdown-spark {
+    display: none;
+  }
 }
 
 .section-pad { padding: clamp(64px, 10vw, 100px) clamp(16px, 4vw, 40px); }

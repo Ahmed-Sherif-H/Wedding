@@ -9,7 +9,7 @@ import cloud5x from './imports/Cloud_5-1.png'
 import cloud6x from './imports/Cloud_6-1.png'
 import musicSrc from './imports/Palm_Dome_Loop.mp3'
 import { preloadCriticalAssets } from './lib/preloadAssets'
-import { computeCoverLayout, HERO_PALMS, HERO_CLOUDS, type CoverLayout, type CloudConfig } from './lib/heroScene'
+import { computeHeroCoverLayout, HERO_PALMS, HERO_CLOUDS, type CoverLayout, type CloudConfig } from './lib/heroScene'
 
 const CLOUD_SRC: Record<CloudConfig['srcKey'], string> = {
   cloud1,
@@ -140,7 +140,7 @@ function MusicButton({ playing, toggle }: { playing: boolean; toggle: () => void
 
 // ─── Organic Bird Flock ───────────────────────────────────────────────────────
 function OrganicBirdFlock({ top, delay, duration, opacity = 1 }: { top: string; delay: string; duration: string; opacity?: number }) {
-  const c = '#3C2A14'
+  const c = '#2A1A0C'
   // [x, y, flapDelay] — offsets within the flock SVG
   const birds = [
     [0, 0, '0s'], [20, -7, '0.18s'], [38, 5, '0.36s'],
@@ -148,35 +148,56 @@ function OrganicBirdFlock({ top, delay, duration, opacity = 1 }: { top: string; 
   ] as const
 
   return (
+    // Full-width track so flock-fly % translates across the whole scene canvas
     <div
-      className="motion-continuous"
+      aria-hidden="true"
       style={{
         position: 'absolute',
         top,
         left: 0,
+        width: '100%',
+        height: 40,
+        zIndex: 4,
         pointerEvents: 'none',
-        opacity,
-        animation: `flock-fly ${duration} linear ${delay} infinite`,
+        overflow: 'visible',
       }}
     >
-      <svg width="110" height="28" viewBox="0 0 110 28" shapeRendering="crispEdges" style={{ imageRendering: 'pixelated', overflow: 'visible' }}>
-        {birds.map(([bx, by, fd], i) => (
-          <g key={i}>
-            {/* Wings-up state (fades in when wings are up) */}
-            <g style={{ animation: `wings-up-fade 0.68s ease-in-out ${fd} infinite` }}>
-              <rect x={bx - 7} y={by + 11} width="5" height="2" fill={c} />
-              <rect x={bx - 2} y={by + 13} width="8" height="2" fill={c} />
-              <rect x={bx + 6} y={by + 11} width="5" height="2" fill={c} />
+      <div
+        className="motion-continuous"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          opacity,
+          animation: `flock-fly ${duration} linear ${delay} infinite`,
+          willChange: 'transform',
+        }}
+      >
+        <svg
+          width="120"
+          height="32"
+          viewBox="0 0 110 28"
+          shapeRendering="crispEdges"
+          style={{ imageRendering: 'pixelated', overflow: 'visible', display: 'block' }}
+        >
+          {birds.map(([bx, by, fd], i) => (
+            <g key={i}>
+              <g style={{ animation: `wings-up-fade 0.68s ease-in-out ${fd} infinite` }}>
+                <rect x={bx - 7} y={by + 11} width="5" height="2" fill={c} />
+                <rect x={bx - 2} y={by + 13} width="8" height="2" fill={c} />
+                <rect x={bx + 6} y={by + 11} width="5" height="2" fill={c} />
+              </g>
+              <g style={{ animation: `wings-down-fade 0.68s ease-in-out ${fd} infinite` }}>
+                <rect x={bx - 7} y={by + 15} width="5" height="2" fill={c} />
+                <rect x={bx - 2} y={by + 13} width="8" height="2" fill={c} />
+                <rect x={bx + 6} y={by + 15} width="5" height="2" fill={c} />
+              </g>
             </g>
-            {/* Wings-down state (fades in when wings are down) */}
-            <g style={{ animation: `wings-down-fade 0.68s ease-in-out ${fd} infinite` }}>
-              <rect x={bx - 7} y={by + 15} width="5" height="2" fill={c} />
-              <rect x={bx - 2} y={by + 13} width="8" height="2" fill={c} />
-              <rect x={bx + 6} y={by + 15} width="5" height="2" fill={c} />
-            </g>
-          </g>
-        ))}
-      </svg>
+          ))}
+        </svg>
+      </div>
     </div>
   )
 }
@@ -196,6 +217,7 @@ function PixelDesertScene({ layout }: { layout: CoverLayout }) {
       <img
         src={heroKeyart}
         alt=""
+        className="hero-keyart"
         draggable={false}
         style={{
           position: 'absolute',
@@ -252,8 +274,9 @@ function PixelDesertScene({ layout }: { layout: CoverLayout }) {
         </div>
       ))}
 
-      <OrganicBirdFlock top="17%" delay="0s" duration="48s" opacity={0.85} />
-      <OrganicBirdFlock top="10%" delay="-26s" duration="64s" opacity={0.6} />
+      <OrganicBirdFlock top="14%" delay="0s" duration="42s" opacity={0.9} />
+      <OrganicBirdFlock top="8%" delay="-18s" duration="56s" opacity={0.7} />
+      <OrganicBirdFlock top="20%" delay="-32s" duration="68s" opacity={0.55} />
 
       {Array.from({ length: 6 }).map((_, i) => (
         <div
@@ -278,9 +301,15 @@ function PixelDesertScene({ layout }: { layout: CoverLayout }) {
 function HeroSection({ onBegin, onInteraction }: { onBegin: () => void; onInteraction?: () => void }) {
   const rootRef = useRef<HTMLDivElement>(null)
   const [layout, setLayout] = useState<CoverLayout>(() =>
-    computeCoverLayout(typeof window !== 'undefined' ? window.innerWidth : 1600, typeof window !== 'undefined' ? window.innerHeight : 900),
+    computeHeroCoverLayout(
+      typeof window !== 'undefined' ? window.innerWidth : 1600,
+      typeof window !== 'undefined' ? window.innerHeight : 900,
+    ),
   )
   const [ready, setReady] = useState(false)
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth < 768,
+  )
   const rafRef = useRef(0)
 
   useEffect(() => {
@@ -302,7 +331,8 @@ function HeroSection({ onBegin, onInteraction }: { onBegin: () => void; onIntera
       cancelAnimationFrame(rafRef.current)
       rafRef.current = requestAnimationFrame(() => {
         const { width, height } = root.getBoundingClientRect()
-        setLayout(computeCoverLayout(width, height))
+        setIsMobile(width < 768)
+        setLayout(computeHeroCoverLayout(width, height))
       })
     }
 
@@ -325,12 +355,16 @@ function HeroSection({ onBegin, onInteraction }: { onBegin: () => void; onIntera
       id="hero"
       ref={rootRef}
       className="relative w-full overflow-hidden"
-      style={{ height: '100dvh', minHeight: 600, background: '#C8E4DE' }}
+      style={{ height: '100dvh', minHeight: isMobile ? undefined : 600, background: '#C8E4DE' }}
     >
       <div className={`hero-reveal hero-scene-root${ready ? ' is-ready' : ''}`} aria-hidden={!ready}>
         <div
           className="hero-scene-motion absolute inset-0 motion-continuous"
-          style={{ width: '102%', height: '102%', top: '-1%', left: '-1%', animation: 'camera-drift 20s ease-in-out infinite' }}
+          style={
+            isMobile
+              ? { inset: 0, width: '100%', height: '100%', animation: 'camera-drift 20s ease-in-out infinite' }
+              : { width: '102%', height: '102%', top: '-1%', left: '-1%', animation: 'camera-drift 20s ease-in-out infinite' }
+          }
         >
           <PixelDesertScene layout={layout} />
         </div>
@@ -338,22 +372,30 @@ function HeroSection({ onBegin, onInteraction }: { onBegin: () => void; onIntera
 
       <div
         className={`hero-reveal absolute inset-0${ready ? ' is-ready' : ''}`}
-        style={{ background: 'linear-gradient(to bottom, rgba(194,234,228,0.04) 0%, rgba(232,132,64,0.12) 70%, rgba(28,40,16,0.38) 100%)', pointerEvents: 'none' }}
+        style={{
+          background: isMobile
+            ? 'linear-gradient(to bottom, rgba(194,234,228,0.12) 0%, rgba(232,132,64,0.22) 55%, rgba(28,40,16,0.5) 100%)'
+            : 'linear-gradient(to bottom, rgba(194,234,228,0.04) 0%, rgba(232,132,64,0.12) 70%, rgba(28,40,16,0.38) 100%)',
+          pointerEvents: 'none',
+        }}
       />
 
       <div
         className={`hero-reveal absolute inset-0 flex flex-col items-center justify-center text-center${ready ? ' is-ready' : ''}`}
-        style={{ padding: '0 clamp(16px,5vw,48px)', gap: 0 }}
+        style={{ padding: isMobile ? '0 20px' : '0 clamp(16px,5vw,48px)', gap: 0 }}
       >
         {ready && (
           <>
-            <div style={{ animation: 'fade-up 1.4s cubic-bezier(0.16,1,0.3,1) forwards', opacity: 0, animationDelay: '0.2s', marginBottom: 20 }}>
+            <div style={{ animation: 'fade-up 1.4s cubic-bezier(0.16,1,0.3,1) forwards', opacity: 0, animationDelay: '0.2s', marginBottom: isMobile ? 14 : 20 }}>
               <p
                 className="font-serif italic"
                 style={{
                   color: '#3A1E0A',
-                  fontSize: 'clamp(14px, 1.8vw, 20px)',
-                  letterSpacing: '0.18em',
+                  fontSize: isMobile ? 'clamp(15px, 4.2vw, 18px)' : 'clamp(14px, 1.8vw, 20px)',
+                  letterSpacing: isMobile ? '0.08em' : '0.18em',
+                  lineHeight: 1.45,
+                  maxWidth: isMobile ? '18em' : undefined,
+                  margin: '0 auto',
                   textShadow: '0 1px 8px rgba(255,240,200,0.9), 0 0 24px rgba(255,240,200,0.6)',
                 }}
               >
@@ -366,11 +408,11 @@ function HeroSection({ onBegin, onInteraction }: { onBegin: () => void; onIntera
                 <div
                   className="font-serif"
                   style={{
-                    fontSize: 'clamp(44px, 8.5vw, 96px)',
+                    fontSize: isMobile ? 'clamp(56px, 16vw, 72px)' : 'clamp(44px, 8.5vw, 96px)',
                     lineHeight: 1,
                     color: '#2C1608',
                     textShadow: '0 2px 32px rgba(255,240,200,0.85)',
-                    letterSpacing: '0.10em',
+                    letterSpacing: isMobile ? '0.06em' : '0.10em',
                   }}
                 >
                   Maryam
@@ -378,11 +420,11 @@ function HeroSection({ onBegin, onInteraction }: { onBegin: () => void; onIntera
                 <div
                   className="font-serif"
                   style={{
-                    fontSize: 'clamp(42px, 6.5vw, 76px)',
+                    fontSize: isMobile ? 'clamp(40px, 11vw, 52px)' : 'clamp(42px, 6.5vw, 76px)',
                     color: '#2C1608',
                     letterSpacing: '0.04em',
                     lineHeight: 1,
-                    padding: 'clamp(6px,0.9vw,14px) 0',
+                    padding: isMobile ? '4px 0' : 'clamp(6px,0.9vw,14px) 0',
                     textShadow: '0 2px 24px rgba(255,240,200,0.7)',
                     textAlign: 'center',
                   }}
@@ -392,12 +434,12 @@ function HeroSection({ onBegin, onInteraction }: { onBegin: () => void; onIntera
                 <div
                   className="font-serif"
                   style={{
-                    fontSize: 'clamp(44px, 8.5vw, 96px)',
+                    fontSize: isMobile ? 'clamp(56px, 16vw, 72px)' : 'clamp(44px, 8.5vw, 96px)',
                     lineHeight: 1,
                     color: '#2C1608',
                     textShadow: '0 2px 32px rgba(255,240,200,0.85)',
-                    letterSpacing: '0.26em',
-                    paddingLeft: '0.26em',
+                    letterSpacing: isMobile ? '0.14em' : '0.26em',
+                    paddingLeft: isMobile ? '0.14em' : '0.26em',
                   }}
                 >
                   Ahmed
@@ -405,22 +447,23 @@ function HeroSection({ onBegin, onInteraction }: { onBegin: () => void; onIntera
               </div>
             </div>
 
-            <div style={{ animation: 'fade-up 1.2s cubic-bezier(0.16,1,0.3,1) forwards', opacity: 0, animationDelay: '0.8s', marginTop: 28, marginBottom: 28, display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 48, height: 1, background: 'rgba(196,113,79,0.5)' }} />
-              <span style={{ color: '#C4714F', fontSize: 12, opacity: 0.7 }}>✦</span>
-              <div style={{ width: 48, height: 1, background: 'rgba(196,113,79,0.5)' }} />
+            <div style={{ animation: 'fade-up 1.2s cubic-bezier(0.16,1,0.3,1) forwards', opacity: 0, animationDelay: '0.8s', marginTop: isMobile ? 20 : 28, marginBottom: isMobile ? 20 : 28, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: isMobile ? 36 : 48, height: 1, background: 'rgba(196,113,79,0.5)' }} />
+              <span style={{ color: '#C4714F', fontSize: isMobile ? 14 : 12, opacity: 0.7 }}>✦</span>
+              <div style={{ width: isMobile ? 36 : 48, height: 1, background: 'rgba(196,113,79,0.5)' }} />
             </div>
 
             <div style={{ animation: 'fade-up 1.4s cubic-bezier(0.16,1,0.3,1) forwards', opacity: 0, animationDelay: '1.05s' }}>
               <button
                 type="button"
                 onClick={handleBegin}
-                className="group relative overflow-hidden px-10 py-4 rounded-full font-serif italic transition-all duration-700"
+                className="group relative overflow-hidden rounded-full font-serif italic transition-all duration-700"
                 style={{
-                  background: 'rgba(253,248,240,0.88)',
+                  padding: isMobile ? '14px 28px' : '16px 40px',
+                  background: 'rgba(253,248,240,0.92)',
                   border: '1.5px solid rgba(196,113,79,0.45)',
                   color: 'var(--terracotta)',
-                  fontSize: 17,
+                  fontSize: isMobile ? 16 : 17,
                   letterSpacing: '0.04em',
                   backdropFilter: 'blur(10px)',
                   animation: 'glow-pulse 4s ease-in-out infinite',
@@ -436,11 +479,17 @@ function HeroSection({ onBegin, onInteraction }: { onBegin: () => void; onIntera
 
       {ready && (
         <div
-          className="hero-reveal is-ready absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-          style={{ opacity: 0.5, animation: 'fade-up 1s ease-out forwards', animationDelay: '2.5s', pointerEvents: 'none' }}
+          className="hero-reveal is-ready absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+          style={{
+            bottom: isMobile ? 20 : 32,
+            opacity: 0.5,
+            animation: 'fade-up 1s ease-out forwards',
+            animationDelay: '2.5s',
+            pointerEvents: 'none',
+          }}
         >
-          <div className="motion-continuous" style={{ width: 1, height: 40, background: 'linear-gradient(to bottom, transparent, var(--terracotta))', animation: 'glow-pulse 2s ease-in-out infinite' }} />
-          <span style={{ fontSize: 10, letterSpacing: '0.3em', color: 'var(--text-light)' }}>SCROLL</span>
+          <div className="motion-continuous" style={{ width: 1, height: isMobile ? 28 : 40, background: 'linear-gradient(to bottom, transparent, var(--terracotta))', animation: 'glow-pulse 2s ease-in-out infinite' }} />
+          <span style={{ fontSize: isMobile ? 11 : 10, letterSpacing: '0.3em', color: 'var(--text-light)' }}>SCROLL</span>
         </div>
       )}
     </section>
@@ -481,39 +530,59 @@ function StorySection() {
 
       <div
         ref={ref}
-        className="relative max-w-2xl mx-auto px-8 text-center"
+        className="relative mx-auto text-center"
         style={{
           opacity: visible ? 1 : 0,
           transform: visible ? 'translateY(0)' : 'translateY(28px)',
           transition: 'opacity 1.2s cubic-bezier(0.16,1,0.3,1), transform 1.2s cubic-bezier(0.16,1,0.3,1)',
         }}
       >
-        <p className="font-serif italic mb-12" style={{ fontSize: 13, letterSpacing: '0.3em', color: 'var(--text-light)' }}>
-          OUR STORY
-        </p>
+        <div className="max-w-2xl mx-auto px-8">
+          <p className="font-serif italic mb-12" style={{ fontSize: 13, letterSpacing: '0.3em', color: 'var(--text-light)' }}>
+            OUR STORY
+          </p>
 
-        {/* The quote */}
-        <p
-          className="font-serif italic"
-          style={{
-            fontSize: 'clamp(22px, 3.5vw, 34px)',
-            color: 'var(--text-dark)',
-            lineHeight: 1.65,
-            marginBottom: 80,
-          }}
-        >
-          "It took two to begin this journey.<br />
-          Now, we'd love for you to celebrate it with us."
-        </p>
+          <p
+            className="font-serif italic"
+            style={{
+              fontSize: 'clamp(22px, 3.5vw, 34px)',
+              color: 'var(--text-dark)',
+              lineHeight: 1.65,
+              marginBottom: 48,
+            }}
+          >
+            "It took two to begin this journey.<br />
+            Now, we'd love for you to celebrate it with us."
+          </p>
+        </div>
 
-        {/* Game placeholder — generous space for embedding */}
+        <div className="w-full max-w-6xl mx-auto px-3 sm:px-6">
+          <MiniGameEmbed />
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function MiniGameEmbed() {
+  const [playing, setPlaying] = useState(false)
+
+  return (
+    <div
+      className="game-placeholder"
+      style={{
+        width: '100%',
+        background: 'rgba(253,248,240,0.85)',
+        border: '1px solid rgba(196,113,79,0.25)',
+        borderRadius: 24,
+        overflow: 'hidden',
+        boxShadow: '0 8px 32px rgba(196,113,79,0.1)',
+      }}
+    >
+      {!playing ? (
         <div
           style={{
-            width: '100%',
-            minHeight: 'clamp(220px,40vw,420px)',
-            background: 'rgba(253,248,240,0.7)',
-            border: '2px dashed rgba(196,113,79,0.3)',
-            borderRadius: 24,
+            minHeight: 'clamp(280px, 50vw, 520px)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -522,8 +591,7 @@ function StorySection() {
             padding: 40,
           }}
         >
-          {/* Pixel controller icon */}
-          <svg width="64" height="44" viewBox="0 0 32 22" style={{ imageRendering: 'pixelated', opacity: 0.35 }}>
+          <svg width="64" height="44" viewBox="0 0 32 22" style={{ imageRendering: 'pixelated', opacity: 0.55 }}>
             <rect x="2" y="6" width="28" height="14" rx="2" fill="#9B6B4A" />
             <rect x="6" y="10" width="2" height="6" fill="#FAF0DC" />
             <rect x="4" y="12" width="6" height="2" fill="#FAF0DC" />
@@ -533,12 +601,45 @@ function StorySection() {
             <rect x="24" y="13" width="2" height="2" fill="#FAF0DC" />
             <rect x="13" y="8" width="6" height="4" fill="#FAF0DC" opacity="0.5" />
           </svg>
-          <p className="font-serif italic" style={{ fontSize: 15, color: 'var(--text-light)', opacity: 0.6, letterSpacing: '0.05em' }}>
-            Mini game — coming soon
+          <p className="font-serif italic" style={{ fontSize: 20, color: 'var(--text-dark)' }}>
+            Play our story
           </p>
+          <p style={{ fontSize: 13, color: 'var(--text-light)', maxWidth: 340, lineHeight: 1.5 }}>
+            A short pixel adventure — loads about 16&nbsp;MB the first time.
+          </p>
+          <button
+            type="button"
+            onClick={() => setPlaying(true)}
+            className="px-10 py-4 rounded-full font-serif italic transition-all duration-300"
+            style={{
+              background: 'var(--terracotta)',
+              color: '#FDF8F0',
+              fontSize: 17,
+              boxShadow: '0 4px 20px rgba(196,113,79,0.35)',
+              marginTop: 8,
+            }}
+          >
+            Play ✦
+          </button>
         </div>
-      </div>
-    </section>
+      ) : (
+        <div style={{ position: 'relative', width: '100%', background: '#1a120c' }}>
+          <iframe
+            title="Maryam & Ahmed mini game"
+            src="/game/index.html"
+            allow="fullscreen; autoplay; gamepad; keyboard-map"
+            allowFullScreen
+            style={{
+              display: 'block',
+              width: '100%',
+              height: 'min(85vh, 900px)',
+              border: 'none',
+              background: '#000',
+            }}
+          />
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -627,7 +728,7 @@ function CountdownSection() {
     <section
       id="countdown"
       ref={sectionRef}
-      className="relative w-full overflow-hidden"
+      className="countdown-section relative w-full overflow-hidden"
       style={{
         minHeight: '80vh',
         background: 'linear-gradient(180deg, #FAF0DC 0%, #F2E0BE 12%, #EDD5A8 40%, #E8CFA0 65%, #F0DEBC 88%, #FAF0DC 100%)',
@@ -638,13 +739,12 @@ function CountdownSection() {
       }}
     >
       {/* Sun sits behind the foreground dune layer */}
-      <div className="countdown-sun">
+      <div className="countdown-sun" aria-hidden="true">
         {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
             className="countdown-sun-ray"
             style={{
-              width: 'clamp(60px, 11vw, 120px)',
               transform: `rotate(${i * 45}deg) scaleX(var(--ray-scale))`,
               background: 'linear-gradient(to right, rgba(220,170,70,var(--ray-opacity)), transparent)',
               animationDelay: `${i * 0.18}s`,
@@ -652,36 +752,42 @@ function CountdownSection() {
           />
         ))}
         <div className="countdown-sun-halo" />
-        <div style={{
-          position: 'relative',
-          width: 'clamp(72px, 12vw, 130px)',
-          height: 'clamp(72px, 12vw, 130px)',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle at 40% 38%, #FFF0D0 0%, #F0C878 40%, #D4A050 80%, #C08838 100%)',
-          boxShadow: '0 0 28px 8px rgba(210,150,60,0.22), 0 0 60px 20px rgba(210,150,60,0.10)',
-        }} />
+        <div className="countdown-sun-disc" />
       </div>
 
-      {/* Foreground dunes — opaque enough to hide the lower sun */}
+      {/* Soft dunes — slice keeps shape on narrow screens instead of stretching */}
       <div className="countdown-dunes" aria-hidden="true">
-        <svg viewBox="0 0 400 80" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
-          <path d="M0,80 L0,42 Q50,22 95,38 Q140,52 185,28 Q230,8 275,34 Q320,54 360,30 Q385,18 400,36 L400,80 Z" fill="#E4C898" />
-          <path d="M0,80 L0,52 Q55,36 110,48 Q165,60 220,40 Q275,22 330,48 Q365,60 400,50 L400,80 Z" fill="#DCC090" />
-          <path d="M0,80 L0,62 Q70,50 140,58 Q210,68 280,54 Q340,44 400,58 L400,80 Z" fill="#D4B478" />
+        <svg viewBox="0 0 800 140" preserveAspectRatio="xMidYMax slice" focusable="false">
+          <path
+            d="M0,140 L0,78 C70,58 130,92 200,70 C280,44 340,86 420,62 C500,38 560,80 640,58 C710,42 760,70 800,56 L800,140 Z"
+            fill="#E6CCA0"
+          />
+          <path
+            d="M0,140 L0,92 C90,78 160,108 250,88 C340,68 410,104 500,84 C590,64 670,98 740,82 C770,76 790,88 800,84 L800,140 Z"
+            fill="#DCC090"
+          />
+          <path
+            d="M0,140 L0,112 C100,102 190,122 300,110 C410,98 520,124 630,112 C720,102 770,118 800,114 L800,140 Z"
+            fill="#D4B478"
+          />
         </svg>
       </div>
 
       {Array.from({ length: 10 }).map((_, i) => (
-        <div key={i} className="absolute rounded-full motion-continuous" style={{
-          left: `${(i * 31 + 8) % 80}%`,
-          top: `${(i * 47 + 12) % 50}%`,
-          width: 2,
-          height: 2,
-          background: '#C8943A',
-          animation: `star-twinkle ${3 + (i % 4) * 0.7}s ease-in-out infinite`,
-          animationDelay: `${i * 0.4}s`,
-          opacity: 0.22,
-        }} />
+        <div
+          key={i}
+          className="countdown-spark absolute rounded-full motion-continuous"
+          style={{
+            left: `${(i * 31 + 8) % 80}%`,
+            top: `${(i * 47 + 12) % 50}%`,
+            width: 2,
+            height: 2,
+            background: '#C8943A',
+            animation: `star-twinkle ${3 + (i % 4) * 0.7}s ease-in-out infinite`,
+            animationDelay: `${i * 0.4}s`,
+            opacity: 0.22,
+          }}
+        />
       ))}
 
       <div ref={ref} className="relative text-center z-10">
@@ -717,7 +823,7 @@ function CountdownSection() {
           ].map(({ v, l }) => (
             <div
               key={l}
-              className="flex flex-col items-center rounded-2xl"
+              className="countdown-tile flex flex-col items-center rounded-2xl"
               style={{
                 background: 'rgba(255,250,238,0.65)',
                 border: '1px solid rgba(180,130,70,0.22)',
@@ -743,14 +849,60 @@ function CountdownSection() {
 
 // ─── Event Section ─────────────────────────────────────────────────────────────
 const events = [
-  { icon: '🕌', title: 'Ceremony', time: '5:00 PM' },
-  { icon: '🌿', title: 'Reception', time: '6:30 PM' },
-  { icon: '🍽', title: 'Dinner', time: '8:00 PM' },
-  { icon: '✨', title: 'Celebration', time: '10:00 PM' },
+  { icon: '🌅', title: 'Guest Arrival & Welcome', time: '5:30 PM' },
+  { icon: '🕌', title: 'Katb Ketab Ceremony', time: '6:30 PM' },
+  { icon: '✨', title: 'Celebration', time: 'Following the ceremony' },
+  { icon: '🍽', title: 'Dinner', time: '' },
+  { icon: '🎉', title: 'Open Celebration', time: '' },
 ]
+
+function EventCard({
+  event,
+  index,
+  visible,
+  className = '',
+}: {
+  event: (typeof events)[number]
+  index: number
+  visible: boolean
+  className?: string
+}) {
+  return (
+    <div
+      className={`group relative rounded-3xl text-center transition-all duration-500 ${className}`}
+      style={{
+        padding: 'clamp(20px,3vw,32px)',
+        background: 'rgba(253,248,240,0.9)',
+        border: '1px solid rgba(196,113,79,0.2)',
+        boxShadow: '0 4px 24px rgba(196,113,79,0.08)',
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(40px)',
+        transition: `opacity 0.8s ease ${index * 0.12}s, transform 0.8s ease ${index * 0.12}s`,
+      }}
+    >
+      <div style={{ position: 'absolute', top: 12, left: 12, width: 8, height: 8, background: 'var(--terracotta)', opacity: 0.3, imageRendering: 'pixelated' }} />
+      <div style={{ position: 'absolute', top: 12, right: 12, width: 8, height: 8, background: 'var(--terracotta)', opacity: 0.3 }} />
+      <div style={{ position: 'absolute', bottom: 12, left: 12, width: 8, height: 8, background: 'var(--terracotta)', opacity: 0.3 }} />
+      <div style={{ position: 'absolute', bottom: 12, right: 12, width: 8, height: 8, background: 'var(--terracotta)', opacity: 0.3 }} />
+
+      <div className="transition-transform duration-300 group-hover:-translate-y-2">
+        <div style={{ fontSize: 32, marginBottom: 16 }}>{event.icon}</div>
+        <h3 className="font-serif" style={{ fontSize: 22, color: 'var(--text-dark)', marginBottom: 8 }}>{event.title}</h3>
+        {event.time ? (
+          <p style={{ fontSize: 13, letterSpacing: '0.15em', color: 'var(--text-light)', marginBottom: 16 }}>{event.time}</p>
+        ) : (
+          <div style={{ height: 13, marginBottom: 16 }} />
+        )}
+        <div style={{ width: 30, height: 1, background: 'var(--terracotta)', margin: '0 auto', opacity: 0.4 }} />
+      </div>
+    </div>
+  )
+}
 
 function EventSection() {
   const { ref, visible } = useScrollReveal(0.15)
+  const mainEvents = events.slice(0, 4)
+  const featured = events[4]
 
   return (
     <section
@@ -771,69 +923,21 @@ function EventSection() {
         </div>
 
         <div className="grid gap-4 sm:gap-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px,100%),1fr))' }}>
-          {events.map((e, i) => (
-            <div
-              key={i}
-              className="group relative rounded-3xl text-center transition-all duration-500"
-              style={{
-                padding: 'clamp(20px,3vw,32px)',
-                background: 'rgba(253,248,240,0.9)',
-                border: '1px solid rgba(196,113,79,0.2)',
-                boxShadow: '0 4px 24px rgba(196,113,79,0.08)',
-                opacity: visible ? 1 : 0,
-                transform: visible ? 'translateY(0)' : 'translateY(40px)',
-                transition: `opacity 0.8s ease ${i * 0.12}s, transform 0.8s ease ${i * 0.12}s`,
-              }}
-            >
-              {/* Pixel corner decoration */}
-              <div style={{ position: 'absolute', top: 12, left: 12, width: 8, height: 8, background: 'var(--terracotta)', opacity: 0.3, imageRendering: 'pixelated' }} />
-              <div style={{ position: 'absolute', top: 12, right: 12, width: 8, height: 8, background: 'var(--terracotta)', opacity: 0.3 }} />
-              <div style={{ position: 'absolute', bottom: 12, left: 12, width: 8, height: 8, background: 'var(--terracotta)', opacity: 0.3 }} />
-              <div style={{ position: 'absolute', bottom: 12, right: 12, width: 8, height: 8, background: 'var(--terracotta)', opacity: 0.3 }} />
-
-              <div className="transition-transform duration-300 group-hover:-translate-y-2">
-              <div style={{ fontSize: 32, marginBottom: 16 }}>{e.icon}</div>
-              <h3 className="font-serif" style={{ fontSize: 24, color: 'var(--text-dark)', marginBottom: 8 }}>{e.title}</h3>
-              <p style={{ fontSize: 13, letterSpacing: '0.15em', color: 'var(--text-light)', marginBottom: 16 }}>{e.time}</p>
-              <div style={{ width: 30, height: 1, background: 'var(--terracotta)', margin: '0 auto', opacity: 0.4 }} />
-              </div>
-            </div>
+          {mainEvents.map((e, i) => (
+            <EventCard key={e.title} event={e} index={i} visible={visible} />
           ))}
         </div>
 
-        <div className="text-center mt-16">
-          <div
-            className="inline-flex flex-col gap-1"
-            style={{
-              background: 'rgba(253,248,240,0.85)',
-              border: '1px solid rgba(196,113,79,0.25)',
-              borderRadius: 20,
-              padding: 'clamp(20px,3vw,28px) clamp(20px,4vw,40px)',
-              backdropFilter: 'blur(8px)',
-              opacity: visible ? 1 : 0,
-              transform: visible ? 'translateY(0)' : 'translateY(20px)',
-              transition: 'opacity 1s ease 0.5s, transform 1s ease 0.5s',
-            }}
-          >
-            <p className="font-serif" style={{ fontSize: 20, color: 'var(--text-dark)' }}>Maqam</p>
-            <p style={{ fontSize: 13, color: 'var(--text-light)', letterSpacing: '0.1em' }}>Orabi, Cairo · 10 September 2026</p>
-            <a
-              href="https://maps.google.com/?q=Maqam,Orabi,Cairo"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-block px-8 py-3 rounded-full font-serif italic transition-all duration-300"
-              style={{
-                background: 'var(--terracotta)',
-                color: '#FDF8F0',
-                fontSize: 15,
-                boxShadow: '0 4px 20px rgba(196,113,79,0.3)',
-                textDecoration: 'none',
-              }}
-            >
-              View Location
-            </a>
+        {featured && (
+          <div className="flex justify-center mt-4 sm:mt-6">
+            <EventCard
+              event={featured}
+              index={4}
+              visible={visible}
+              className="w-full max-w-[min(100%,280px)]"
+            />
           </div>
-        </div>
+        )}
       </div>
     </section>
   )

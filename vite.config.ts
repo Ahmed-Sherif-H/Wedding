@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => {
       figmaErrorOverlayReplay(),
       figmaReactRefreshBoundaryFallback(),
       figmaMakeKitPlugin({ storiesGlob: '/src/**/*.stories.{ts,tsx,js,jsx}' }),
+      unityBrotliHeaders(),
     ],
     resolve: {
       alias: {
@@ -41,6 +42,32 @@ export default defineConfig(({ mode }) => {
     },
   }
 })
+
+/** Serve Unity WebGL .br files with Content-Encoding so the browser decompresses them. */
+function unityBrotliHeaders(): Plugin {
+  const attach = (middlewares: { use: (fn: (req: any, res: any, next: () => void) => void) => void }) => {
+    middlewares.use((req, res, next) => {
+      const url = req.url?.split('?')[0] ?? ''
+      if (!url.includes('/game/Build/') || !url.endsWith('.br')) return next()
+
+      res.setHeader('Content-Encoding', 'br')
+      if (url.endsWith('.wasm.br')) res.setHeader('Content-Type', 'application/wasm')
+      else if (url.endsWith('.js.br')) res.setHeader('Content-Type', 'application/javascript')
+      else if (url.endsWith('.data.br')) res.setHeader('Content-Type', 'application/octet-stream')
+      next()
+    })
+  }
+
+  return {
+    name: 'unity-brotli-headers',
+    configureServer(server) {
+      attach(server.middlewares)
+    },
+    configurePreviewServer(server) {
+      attach(server.middlewares)
+    },
+  }
+}
 
 type FigmaSiteConfiguration = {
   title?: string
