@@ -62,12 +62,12 @@ export type PalmConfig = {
  * Adjust x, y, h here when the artwork framing changes.
  */
 export const HERO_PALMS: PalmConfig[] = [
-  { x: 0.04, y: 0.96, h: 0.24, delay: '0s', dur: '6.8s' },
-  { x: 0.17, y: 0.955, h: 0.28, delay: '1.6s', dur: '7.4s' },
-  { x: 0.34, y: 0.95, h: 0.26, delay: '2.8s', dur: '6.5s' },
-  { x: 0.54, y: 0.952, h: 0.25, delay: '0.9s', dur: '7.2s' },
-  { x: 0.71, y: 0.948, h: 0.27, delay: '2.1s', dur: '6.9s' },
-  { x: 0.88, y: 0.96, h: 0.22, delay: '1.3s', dur: '7.6s' },
+  { x: 0.04, y: 0.90, h: 0.24, delay: '0s', dur: '6.8s' },
+  { x: 0.17, y: 0.905, h: 0.28, delay: '1.6s', dur: '7.4s' },
+  { x: 0.34, y: 0.905, h: 0.26, delay: '2.8s', dur: '6.5s' },
+  { x: 0.54, y: 0.905, h: 0.25, delay: '0.9s', dur: '7.2s' },
+  { x: 0.71, y: 0.905, h: 0.27, delay: '2.1s', dur: '6.9s' },
+  { x: 0.88, y: 0.90, h: 0.22, delay: '1.3s', dur: '7.6s' },
 ]
 
 export type CloudConfig = {

@@ -1097,95 +1097,6 @@ function MapSection() {
   )
 }
 
-// ─── Schedule Section ─────────────────────────────────────────────────────────
-const milestones = [
-  { time: '5:30 PM', label: 'Guest Arrival & Welcome', icon: '🌅' },
-  { time: '6:30 PM', label: 'Katb Ketab Ceremony', icon: '🕌' },
-  { time: 'Following the ceremony', label: 'Celebration', icon: '✨' },
-  { time: '', label: 'Dinner', icon: '🍽' },
-  { time: '', label: 'Open Celebration', icon: '🎉' },
-]
-
-function ScheduleSection() {
-  const { ref, visible } = useScrollReveal(0.1)
-
-  return (
-    <section
-      id="schedule"
-      className="relative w-full"
-      style={{ background: 'linear-gradient(to bottom, #FAF0DC, #F2E4C8)', padding: 'clamp(64px,10vw,100px) clamp(16px,4vw,40px)', paddingBottom: 'clamp(64px,10vw,100px)' }}
-    >
-      <div className="max-w-lg mx-auto">
-        <div className="text-center mb-16">
-          <p className="font-serif italic mb-3" style={{ fontSize: 13, letterSpacing: '0.3em', color: 'var(--text-light)' }}>
-            THE JOURNEY
-          </p>
-          <h2 className="font-serif" style={{ fontSize: 'clamp(32px, 5vw, 52px)', color: 'var(--text-dark)' }}>
-            Day of Events
-          </h2>
-        </div>
-
-        <div ref={ref} className="relative">
-          {/* Road line */}
-          <div
-            className="absolute"
-            style={{
-              left: '28px',
-              top: 0,
-              bottom: 0,
-              width: 2,
-              background: 'repeating-linear-gradient(to bottom, var(--sand) 0px, var(--sand) 12px, transparent 12px, transparent 20px)',
-            }}
-          />
-
-          <div className="flex flex-col gap-8">
-            {milestones.map((m, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-6"
-                style={{
-                  opacity: visible ? 1 : 0,
-                  transform: visible ? 'translateX(0)' : 'translateX(-30px)',
-                  transition: `opacity 0.7s ease ${i * 0.15}s, transform 0.7s ease ${i * 0.15}s`,
-                }}
-              >
-                {/* Milestone dot */}
-                <div
-                  className="relative flex-shrink-0 flex items-center justify-center rounded-full"
-                  style={{
-                    width: 56,
-                    height: 56,
-                    background: 'rgba(253,248,240,0.95)',
-                    border: '2px solid rgba(196,113,79,0.4)',
-                    boxShadow: '0 4px 16px rgba(196,113,79,0.15)',
-                    animation: visible ? `timeline-glow ${2 + i * 0.5}s ease-in-out infinite ${i * 0.3}s` : 'none',
-                    fontSize: 22,
-                    zIndex: 1,
-                  }}
-                >
-                  {m.icon}
-                </div>
-                {/* Content */}
-                <div
-                  className="flex-1 rounded-2xl p-5"
-                  style={{
-                    background: 'rgba(253,248,240,0.85)',
-                    border: '1px solid rgba(196,113,79,0.18)',
-                    backdropFilter: 'blur(8px)',
-                  }}
-                >
-                  <p style={{ fontSize: 12, letterSpacing: '0.2em', color: 'var(--text-light)', marginBottom: 4 }}>{m.time}</p>
-                  <p className="font-serif" style={{ fontSize: 22, color: 'var(--text-dark)' }}>{m.label}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
 // ─── Photo Upload Section ─────────────────────────────────────────────────────
 function PhotoUploadSection() {
   const { ref, visible } = useScrollReveal(0.1)
@@ -1494,7 +1405,7 @@ function Footer() {
 }
 
 // ─── Nav Dots ─────────────────────────────────────────────────────────────────
-const navSections = ['hero', 'story', 'countdown', 'events', 'map', 'schedule', 'rsvp', 'photos']
+const navSections = ['hero', 'story', 'countdown', 'events', 'map', 'rsvp', 'photos']
 
 function NavDots({ active }: { active: string }) {
   const scrollTo = (id: string) => {
@@ -1646,7 +1557,6 @@ export default function App() {
       <CountdownSection />
       <EventSection />
       <MapSection />
-      <ScheduleSection />
       <RSVPSection />
       <PhotoUploadSection />
       <Footer />
