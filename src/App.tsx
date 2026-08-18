@@ -139,65 +139,63 @@ function MusicButton({ playing, toggle }: { playing: boolean; toggle: () => void
 }
 
 // ─── Organic Bird Flock ───────────────────────────────────────────────────────
-function OrganicBirdFlock({ top, delay, duration, opacity = 1 }: { top: string; delay: string; duration: string; opacity?: number }) {
-  const c = '#2A1A0C'
-  // [x, y, flapDelay] — offsets within the flock SVG
+/** Small thin flocks in the hero viewport sky (not inside the cropped scene canvas). */
+function OrganicBirdFlock({
+  top,
+  delay,
+  duration,
+  opacity = 0.7,
+}: {
+  top: string
+  delay: string
+  duration: string
+  opacity?: number
+}) {
+  const c = '#3C2A14'
+  // 3 birds only — thinner strokes, tighter spacing
   const birds = [
-    [0, 0, '0s'], [20, -7, '0.18s'], [38, 5, '0.36s'],
-    [54, -3, '0.12s'], [70, 6, '0.28s'], [88, -5, '0.44s'],
+    [0, 0, '0s'],
+    [16, -4, '0.2s'],
+    [30, 3, '0.38s'],
   ] as const
 
   return (
-    // Full-width track so flock-fly % translates across the whole scene canvas
     <div
+      className="motion-continuous hero-bird-flock"
       aria-hidden="true"
       style={{
         position: 'absolute',
         top,
         left: 0,
-        width: '100%',
-        height: 40,
-        zIndex: 4,
+        zIndex: 6,
         pointerEvents: 'none',
-        overflow: 'visible',
+        opacity,
+        animation: `flock-fly ${duration} linear ${delay} infinite`,
+        willChange: 'transform',
       }}
     >
-      <div
-        className="motion-continuous"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          opacity,
-          animation: `flock-fly ${duration} linear ${delay} infinite`,
-          willChange: 'transform',
-        }}
+      <svg
+        width="48"
+        height="18"
+        viewBox="0 0 42 16"
+        shapeRendering="crispEdges"
+        style={{ imageRendering: 'pixelated', overflow: 'visible', display: 'block' }}
       >
-        <svg
-          width="120"
-          height="32"
-          viewBox="0 0 110 28"
-          shapeRendering="crispEdges"
-          style={{ imageRendering: 'pixelated', overflow: 'visible', display: 'block' }}
-        >
-          {birds.map(([bx, by, fd], i) => (
-            <g key={i}>
-              <g style={{ animation: `wings-up-fade 0.68s ease-in-out ${fd} infinite` }}>
-                <rect x={bx - 7} y={by + 11} width="5" height="2" fill={c} />
-                <rect x={bx - 2} y={by + 13} width="8" height="2" fill={c} />
-                <rect x={bx + 6} y={by + 11} width="5" height="2" fill={c} />
-              </g>
-              <g style={{ animation: `wings-down-fade 0.68s ease-in-out ${fd} infinite` }}>
-                <rect x={bx - 7} y={by + 15} width="5" height="2" fill={c} />
-                <rect x={bx - 2} y={by + 13} width="8" height="2" fill={c} />
-                <rect x={bx + 6} y={by + 15} width="5" height="2" fill={c} />
-              </g>
+        {birds.map(([bx, by, fd], i) => (
+          <g key={i}>
+            <g style={{ animation: `wings-up-fade 0.68s ease-in-out ${fd} infinite` }}>
+              <rect x={bx - 4} y={by + 6} width="3" height="1" fill={c} />
+              <rect x={bx - 1} y={by + 7} width="5" height="1" fill={c} />
+              <rect x={bx + 4} y={by + 6} width="3" height="1" fill={c} />
             </g>
-          ))}
-        </svg>
-      </div>
+            <g style={{ animation: `wings-down-fade 0.68s ease-in-out ${fd} infinite` }}>
+              <rect x={bx - 4} y={by + 8} width="3" height="1" fill={c} />
+              <rect x={bx - 1} y={by + 7} width="5" height="1" fill={c} />
+              <rect x={bx + 4} y={by + 8} width="3" height="1" fill={c} />
+            </g>
+          </g>
+        ))}
+      </svg>
     </div>
   )
 }
@@ -273,10 +271,6 @@ function PixelDesertScene({ layout }: { layout: CoverLayout }) {
           </div>
         </div>
       ))}
-
-      <OrganicBirdFlock top="14%" delay="0s" duration="42s" opacity={0.9} />
-      <OrganicBirdFlock top="8%" delay="-18s" duration="56s" opacity={0.7} />
-      <OrganicBirdFlock top="20%" delay="-32s" duration="68s" opacity={0.55} />
 
       {Array.from({ length: 6 }).map((_, i) => (
         <div
@@ -370,9 +364,20 @@ function HeroSection({ onBegin, onInteraction }: { onBegin: () => void; onIntera
         </div>
       </div>
 
+      {/* Thin flocks in the visible sky (viewport layer — not cropped with the scene) */}
+      <div
+        className={`hero-reveal absolute inset-0${ready ? ' is-ready' : ''}`}
+        aria-hidden="true"
+        style={{ zIndex: 5, pointerEvents: 'none', overflow: 'hidden' }}
+      >
+        <OrganicBirdFlock top={isMobile ? '12%' : '10%'} delay="-6s" duration="48s" opacity={0.75} />
+        <OrganicBirdFlock top={isMobile ? '19%' : '16%'} delay="-24s" duration="62s" opacity={0.55} />
+      </div>
+
       <div
         className={`hero-reveal absolute inset-0${ready ? ' is-ready' : ''}`}
         style={{
+          zIndex: 4,
           background: isMobile
             ? 'linear-gradient(to bottom, rgba(194,234,228,0.12) 0%, rgba(232,132,64,0.22) 55%, rgba(28,40,16,0.5) 100%)'
             : 'linear-gradient(to bottom, rgba(194,234,228,0.04) 0%, rgba(232,132,64,0.12) 70%, rgba(28,40,16,0.38) 100%)',
@@ -382,7 +387,7 @@ function HeroSection({ onBegin, onInteraction }: { onBegin: () => void; onIntera
 
       <div
         className={`hero-reveal absolute inset-0 flex flex-col items-center justify-center text-center${ready ? ' is-ready' : ''}`}
-        style={{ padding: isMobile ? '0 20px' : '0 clamp(16px,5vw,48px)', gap: 0 }}
+        style={{ zIndex: 6, padding: isMobile ? '0 20px' : '0 clamp(16px,5vw,48px)', gap: 0 }}
       >
         {ready && (
           <>

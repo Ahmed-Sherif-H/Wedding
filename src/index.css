@@ -69,12 +69,12 @@ body {
   to   { transform: translateX(calc(100% + 140px)); }
 }
 @keyframes flock-fly {
-  0%   { transform: translateX(-12%) translateY(0px); }
-  18%  { transform: translateX(18%)  translateY(-14px); }
-  36%  { transform: translateX(36%)  translateY(6px); }
-  56%  { transform: translateX(56%)  translateY(-10px); }
-  76%  { transform: translateX(76%)  translateY(12px); }
-  100% { transform: translateX(108%) translateY(-4px); }
+  0%   { transform: translateX(-180px) translateY(0px); }
+  18%  { transform: translateX(18vw)  translateY(-16px); }
+  36%  { transform: translateX(36vw)  translateY(8px); }
+  56%  { transform: translateX(56vw)  translateY(-12px); }
+  76%  { transform: translateX(76vw)  translateY(14px); }
+  100% { transform: translateX(calc(100vw + 180px)) translateY(-4px); }
 }
 @keyframes wings-up-fade {
   0%, 35%  { opacity: 1; }
@@ -316,6 +316,11 @@ body {
   .hero-scene-motion,
   .motion-continuous {
     animation: none !important;
+  }
+  .hero-bird-flock.motion-continuous {
+    /* Keep flocks visible when motion is reduced */
+    left: 28%;
+    transform: none !important;
   }
   .hero-reveal {
     transition: none;
