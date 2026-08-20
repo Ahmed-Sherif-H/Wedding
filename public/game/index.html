@@ -26,12 +26,6 @@
     <script>
       var canvas = document.querySelector("#unity-canvas");
 
-      // Shows a temporary message banner/ribbon for a few seconds, or
-      // a permanent error message on top of the canvas if type=='error'.
-      // If type=='warning', a yellow highlight color is used.
-      // Modify or remove this function to customize the visually presented
-      // way that non-critical warnings and error messages are presented to the
-      // user.
       function unityShowBanner(msg, type) {
         var warningBanner = document.querySelector("#unity-warning");
         function updateBannerVisibility() {
@@ -51,6 +45,51 @@
         updateBannerVisibility();
       }
 
+      function setProgress(pct) {
+        document.querySelector("#unity-progress-bar-full").style.width = (100 * pct) + "%";
+      }
+
+      function isPlainJs(bytes) {
+        var head = new TextDecoder().decode(bytes.subarray(0, 48));
+        return head.indexOf("unityFramework") !== -1 || /^\s*(var|let|const|function|\(|\/)/.test(head);
+      }
+
+      function isPlainWasm(bytes) {
+        return bytes.length >= 4 && bytes[0] === 0 && bytes[1] === 97 && bytes[2] === 115 && bytes[3] === 109;
+      }
+
+      function isPlainData(bytes) {
+        return new TextDecoder().decode(bytes.subarray(0, 16)).indexOf("UnityWebData1.0") === 0;
+      }
+
+      // Cloudflare often serves Unity .br files without Content-Encoding: br.
+      // Decompress in the browser when needed, then hand Unity plain blob URLs.
+      async function loadUnityAsset(url, kind) {
+        var response = await fetch(url);
+        if (!response.ok) throw new Error("Failed to download " + url + " (" + response.status + ")");
+        var buffer = await response.arrayBuffer();
+        var bytes = new Uint8Array(buffer);
+        var plain =
+          kind === "js" ? isPlainJs(bytes) :
+          kind === "wasm" ? isPlainWasm(bytes) :
+          isPlainData(bytes);
+
+        if (!plain) {
+          if (typeof DecompressionStream === "undefined") {
+            throw new Error("This browser cannot decompress the game files. Please update Chrome/Edge/Firefox/Safari.");
+          }
+          buffer = await new Response(
+            new Blob([buffer]).stream().pipeThrough(new DecompressionStream("br"))
+          ).arrayBuffer();
+        }
+
+        var type =
+          kind === "js" ? "application/javascript" :
+          kind === "wasm" ? "application/wasm" :
+          "application/octet-stream";
+        return URL.createObjectURL(new Blob([buffer], { type: type }));
+      }
+
       var buildUrl = "Build";
       var loaderUrl = buildUrl + "/newbuild.loader.js";
       var config = {
@@ -63,63 +102,63 @@
         productName: "My project",
         productVersion: "1.0",
         showBanner: unityShowBanner,
-        // errorHandler: function(err, url, line) {
-        //    alert("error " + err + " occurred at line " + line);
-        //    // Return 'true' if you handled this error and don't want Unity
-        //    // to process it further, 'false' otherwise.
-        //    return true;
-        // },
       };
 
-      // By default, Unity keeps WebGL canvas render target size matched with
-      // the DOM size of the canvas element (scaled by window.devicePixelRatio)
-      // Set this to false if you want to decouple this synchronization from
-      // happening inside the engine, and you would instead like to size up
-      // the canvas DOM size and WebGL render target sizes yourself.
-      // config.matchWebGLToCanvasSize = false;
-
-      // If you would like all file writes inside Unity Application.persistentDataPath
-      // directory to automatically persist so that the contents are remembered when
-      // the user revisits the site the next time, uncomment the following line:
-      // config.autoSyncPersistentDataPath = true;
-      // This autosyncing is currently not the default behavior to avoid regressing
-      // existing user projects that might rely on the earlier manual
-      // JS_FileSystem_Sync() behavior, but in future Unity version, this will be
-      // expected to change.
-
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        var meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-        document.getElementsByTagName('head')[0].appendChild(meta);
+        var meta = document.createElement("meta");
+        meta.name = "viewport";
+        meta.content = "width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes";
+        document.getElementsByTagName("head")[0].appendChild(meta);
         document.querySelector("#unity-container").className = "unity-mobile";
         canvas.className = "unity-mobile";
       }
 
-      // Fill the available frame (iframe or full page)
       canvas.style.width = "100%";
       canvas.style.height = "100%";
-
       document.querySelector("#unity-loading-bar").style.display = "block";
+      setProgress(0.02);
 
       var script = document.createElement("script");
       script.src = loaderUrl;
-      script.onload = () => {
-        createUnityInstance(canvas, config, (progress) => {
-          document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
-              }).then((unityInstance) => {
-                document.querySelector("#unity-loading-bar").style.display = "none";
-                document.querySelector("#unity-fullscreen-button").onclick = () => {
-                  unityInstance.SetFullscreen(1);
-                };
+      script.onload = function () {
+        Promise.all([
+          loadUnityAsset(buildUrl + "/newbuild.data.br", "data").then(function (url) {
+            setProgress(0.2);
+            return url;
+          }),
+          loadUnityAsset(buildUrl + "/newbuild.framework.js.br", "js").then(function (url) {
+            setProgress(0.28);
+            return url;
+          }),
+          loadUnityAsset(buildUrl + "/newbuild.wasm.br", "wasm").then(function (url) {
+            setProgress(0.35);
+            return url;
+          }),
+        ]).then(function (urls) {
+          config.dataUrl = urls[0];
+          config.frameworkUrl = urls[1];
+          config.codeUrl = urls[2];
 
-              }).catch((message) => {
-                alert(message);
-              });
-            };
-
+          return createUnityInstance(canvas, config, function (progress) {
+            setProgress(0.35 + 0.65 * progress);
+          });
+        }).then(function (unityInstance) {
+          document.querySelector("#unity-loading-bar").style.display = "none";
+          document.querySelector("#unity-fullscreen-button").onclick = function () {
+            unityInstance.SetFullscreen(1);
+          };
+        }).catch(function (message) {
+          console.error(message);
+          unityShowBanner(String(message), "error");
+          alert(message);
+        });
+      };
+      script.onerror = function () {
+        var msg = "Unable to load the Unity loader script.";
+        unityShowBanner(msg, "error");
+        alert(msg);
+      };
       document.body.appendChild(script);
-
     </script>
   </body>
 </html>

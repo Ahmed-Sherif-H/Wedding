@@ -1,5 +1,7 @@
 # Cloudflare Pages / Netlify headers for Unity WebGL Brotli builds
-# Note: Workers also needs worker.js to force Content-Encoding (see wrangler.json).
+/game/index.html
+  Cache-Control: no-cache
+
 /game/Build/*.data.br
   Content-Encoding: br
   Content-Type: application/octet-stream
