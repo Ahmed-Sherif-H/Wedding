@@ -533,6 +533,7 @@ function StorySection() {
         </svg>
       </div>
 
+      {/* Keep transform only on the copy — it traps position:fixed for fullscreen if it wraps the game */}
       <div
         ref={ref}
         className="relative mx-auto text-center"
@@ -560,10 +561,10 @@ function StorySection() {
             Now, we'd love for you to celebrate it with us."
           </p>
         </div>
+      </div>
 
-        <div className="w-full max-w-6xl mx-auto px-3 sm:px-6">
-          <MiniGameEmbed />
-        </div>
+      <div className="relative w-full max-w-6xl mx-auto px-3 sm:px-6">
+        <MiniGameEmbed />
       </div>
     </section>
   )
@@ -573,15 +574,82 @@ function MiniGameEmbed() {
   const [playing, setPlaying] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const shellRef = useRef<HTMLDivElement>(null)
+
+  const requestNativeFullscreen = useCallback(async (el: HTMLElement) => {
+    const anyEl = el as HTMLElement & {
+      webkitRequestFullscreen?: () => Promise<void> | void
+      msRequestFullscreen?: () => Promise<void> | void
+    }
+    try {
+      if (el.requestFullscreen) await el.requestFullscreen()
+      else if (anyEl.webkitRequestFullscreen) await anyEl.webkitRequestFullscreen()
+      else if (anyEl.msRequestFullscreen) await anyEl.msRequestFullscreen()
+      else return false
+      return true
+    } catch {
+      return false
+    }
+  }, [])
+
+  const exitNativeFullscreen = useCallback(async () => {
+    const doc = document as Document & {
+      webkitExitFullscreen?: () => Promise<void> | void
+      msExitFullscreen?: () => Promise<void> | void
+    }
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen()
+      else if (doc.webkitExitFullscreen) await doc.webkitExitFullscreen()
+      else if (doc.msExitFullscreen) await doc.msExitFullscreen()
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
+  const enterFullscreen = useCallback(async () => {
+    const shell = shellRef.current
+    setExpanded(true)
+    if (shell) await requestNativeFullscreen(shell)
+    iframeRef.current?.contentWindow?.postMessage(
+      { source: 'wedding-unity', type: 'fullscreen', on: true },
+      '*',
+    )
+  }, [requestNativeFullscreen])
+
+  const exitFullscreen = useCallback(async () => {
+    setExpanded(false)
+    await exitNativeFullscreen()
+    iframeRef.current?.contentWindow?.postMessage(
+      { source: 'wedding-unity', type: 'fullscreen', on: false },
+      '*',
+    )
+  }, [exitNativeFullscreen])
+
+  const expandedRef = useRef(false)
+  expandedRef.current = expanded
 
   useEffect(() => {
     const onMsg = (event: MessageEvent) => {
       const data = event.data
       if (!data || data.source !== 'wedding-unity' || data.type !== 'fullscreen') return
-      setExpanded(!!data.on)
+      if (!!data.on === expandedRef.current) return
+      if (data.on) void enterFullscreen()
+      else void exitFullscreen()
     }
     window.addEventListener('message', onMsg)
     return () => window.removeEventListener('message', onMsg)
+  }, [enterFullscreen, exitFullscreen])
+
+  useEffect(() => {
+    const sync = () => {
+      if (!document.fullscreenElement) setExpanded(false)
+    }
+    document.addEventListener('fullscreenchange', sync)
+    document.addEventListener('webkitfullscreenchange', sync as EventListener)
+    return () => {
+      document.removeEventListener('fullscreenchange', sync)
+      document.removeEventListener('webkitfullscreenchange', sync as EventListener)
+    }
   }, [])
 
   useEffect(() => {
@@ -593,16 +661,9 @@ function MiniGameEmbed() {
     }
   }, [expanded])
 
-  const exitExpanded = () => {
-    setExpanded(false)
-    iframeRef.current?.contentWindow?.postMessage(
-      { source: 'wedding-unity', type: 'fullscreen', on: false },
-      '*',
-    )
-  }
-
   return (
     <div
+      ref={shellRef}
       className="game-placeholder"
       style={
         expanded
@@ -610,8 +671,9 @@ function MiniGameEmbed() {
               position: 'fixed',
               inset: 0,
               zIndex: 10000,
-              width: '100%',
+              width: '100vw',
               height: '100dvh',
+              maxWidth: 'none',
               background: '#000',
               border: 'none',
               borderRadius: 0,
@@ -673,16 +735,21 @@ function MiniGameEmbed() {
         </div>
       ) : (
         <div style={{ position: 'relative', width: '100%', height: expanded ? '100%' : undefined, background: '#1a120c' }}>
-          {expanded && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 'max(10px, env(safe-area-inset-top))',
+              right: 'max(10px, env(safe-area-inset-right))',
+              zIndex: 3,
+              display: 'flex',
+              gap: 8,
+            }}
+          >
             <button
               type="button"
-              onClick={exitExpanded}
-              aria-label="Exit fullscreen"
+              onClick={() => { void (expanded ? exitFullscreen() : enterFullscreen()) }}
+              aria-label={expanded ? 'Exit fullscreen' : 'Enter fullscreen'}
               style={{
-                position: 'absolute',
-                top: 'max(12px, env(safe-area-inset-top))',
-                right: 'max(12px, env(safe-area-inset-right))',
-                zIndex: 2,
                 padding: '10px 14px',
                 borderRadius: 999,
                 border: 'none',
@@ -690,16 +757,17 @@ function MiniGameEmbed() {
                 color: '#FDF8F0',
                 fontSize: 14,
                 fontFamily: 'inherit',
+                cursor: 'pointer',
               }}
             >
-              Exit
+              {expanded ? 'Exit' : 'Fullscreen'}
             </button>
-          )}
+          </div>
           <iframe
             ref={iframeRef}
             title="Maryam & Ahmed mini game"
             src="/game/index.html"
-            allow="fullscreen; autoplay; gamepad; keyboard-map"
+            allow="fullscreen *; autoplay; gamepad; keyboard-map"
             allowFullScreen
             style={{
               display: 'block',

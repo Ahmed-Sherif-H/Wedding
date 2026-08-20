@@ -170,14 +170,16 @@
         }).then(function (unityInstance) {
           document.querySelector("#unity-loading-bar").style.display = "none";
 
-          // iPhone Safari does not support the Fullscreen API inside iframes (Android does).
-          // Ask the parent page for a CSS viewport takeover, and still try native fullscreen.
+          // iPhone Safari / iframe: Fullscreen API is unreliable.
+          // Notify parent for viewport takeover; only message when state changes.
           var pseudoFs = false;
-          function setPseudoFullscreen(on) {
-            pseudoFs = !!on;
+          function setPseudoFullscreen(on, fromParent) {
+            on = !!on;
+            if (pseudoFs === on) return;
+            pseudoFs = on;
             document.documentElement.classList.toggle("unity-pseudo-fs", pseudoFs);
             document.body.classList.toggle("unity-pseudo-fs", pseudoFs);
-            if (window.parent && window.parent !== window) {
+            if (!fromParent && window.parent && window.parent !== window) {
               window.parent.postMessage(
                 { source: "wedding-unity", type: "fullscreen", on: pseudoFs },
                 "*"
@@ -189,12 +191,12 @@
           }
 
           document.querySelector("#unity-fullscreen-button").onclick = function () {
-            setPseudoFullscreen(!pseudoFs);
+            setPseudoFullscreen(!pseudoFs, false);
           };
 
           window.addEventListener("message", function (event) {
             if (!event.data || event.data.source !== "wedding-unity") return;
-            if (event.data.type === "fullscreen") setPseudoFullscreen(!!event.data.on);
+            if (event.data.type === "fullscreen") setPseudoFullscreen(!!event.data.on, true);
           });
         }).catch(function (message) {
           console.error(message);
