@@ -55,11 +55,9 @@
       var loaderUrl = buildUrl + "/newbuild.loader.js";
       var config = {
         arguments: [],
-        // Uncompressed assets — Workers/hosting often omit Content-Encoding: br,
-        // which breaks Unity's Brotli builds. Uncompressed works everywhere.
-        dataUrl: buildUrl + "/newbuild.data",
-        frameworkUrl: buildUrl + "/newbuild.framework.js",
-        codeUrl: buildUrl + "/newbuild.wasm",
+        dataUrl: buildUrl + "/newbuild.data.br",
+        frameworkUrl: buildUrl + "/newbuild.framework.js.br",
+        codeUrl: buildUrl + "/newbuild.wasm.br",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "My project",
