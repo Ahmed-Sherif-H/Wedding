@@ -1,16 +1,13 @@
-# Cloudflare Pages / Netlify headers for Unity WebGL Brotli builds
-/game/Build/*.data.br
-  Content-Encoding: br
+# Cloudflare Pages / Netlify headers for Unity WebGL (uncompressed)
+/game/Build/*.data
   Content-Type: application/octet-stream
   Cache-Control: public, max-age=31536000, immutable
 
-/game/Build/*.wasm.br
-  Content-Encoding: br
+/game/Build/*.wasm
   Content-Type: application/wasm
   Cache-Control: public, max-age=31536000, immutable
 
-/game/Build/*.js.br
-  Content-Encoding: br
+/game/Build/*.framework.js
   Content-Type: application/javascript
   Cache-Control: public, max-age=31536000, immutable
 
