@@ -35,11 +35,6 @@
         </div>
       </div>
       <div id="unity-warning"> </div>
-      <div id="unity-footer">
-        <div id="unity-logo-title-footer"></div>
-        <div id="unity-fullscreen-button"></div>
-        <div id="unity-build-title">Maryam &amp; Ahmed</div>
-      </div>
     </div>
     <script>
       var canvas = document.querySelector("#unity-canvas");
@@ -170,8 +165,7 @@
         }).then(function (unityInstance) {
           document.querySelector("#unity-loading-bar").style.display = "none";
 
-          // iPhone Safari / iframe: Fullscreen API is unreliable.
-          // Notify parent for viewport takeover; only message when state changes.
+          // Parent page owns fullscreen UI; sync when it asks.
           var pseudoFs = false;
           function setPseudoFullscreen(on, fromParent) {
             on = !!on;
@@ -189,10 +183,6 @@
               unityInstance.SetFullscreen(pseudoFs ? 1 : 0);
             } catch (err) { /* native FS unsupported */ }
           }
-
-          document.querySelector("#unity-fullscreen-button").onclick = function () {
-            setPseudoFullscreen(!pseudoFs, false);
-          };
 
           window.addEventListener("message", function (event) {
             if (!event.data || event.data.source !== "wedding-unity") return;
