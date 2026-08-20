@@ -1,19 +1,19 @@
-# Cloudflare Pages / Netlify headers for Unity WebGL Brotli builds
+# Cloudflare / Netlify headers for Unity WebGL gzip builds
 /game/index.html
   Cache-Control: no-cache
 
-/game/Build/*.data.br
-  Content-Encoding: br
+/game/Build/*.data.gz
+  Content-Encoding: gzip
   Content-Type: application/octet-stream
   Cache-Control: public, max-age=31536000, immutable
 
-/game/Build/*.wasm.br
-  Content-Encoding: br
+/game/Build/*.wasm.gz
+  Content-Encoding: gzip
   Content-Type: application/wasm
   Cache-Control: public, max-age=31536000, immutable
 
-/game/Build/*.js.br
-  Content-Encoding: br
+/game/Build/*.js.gz
+  Content-Encoding: gzip
   Content-Type: application/javascript
   Cache-Control: public, max-age=31536000, immutable
 

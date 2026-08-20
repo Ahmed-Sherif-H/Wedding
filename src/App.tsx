@@ -610,7 +610,7 @@ function MiniGameEmbed() {
             Play our story
           </p>
           <p style={{ fontSize: 13, color: 'var(--text-light)', maxWidth: 340, lineHeight: 1.5 }}>
-            A short pixel adventure — loads about 16&nbsp;MB the first time.
+            A short pixel adventure — loads about 21&nbsp;MB the first time.
           </p>
           <button
             type="button"

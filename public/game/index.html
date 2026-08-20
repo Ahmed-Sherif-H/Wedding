@@ -62,8 +62,12 @@
         return new TextDecoder().decode(bytes.subarray(0, 16)).indexOf("UnityWebData1.0") === 0;
       }
 
-      // Cloudflare often serves Unity .br files without Content-Encoding: br.
-      // Decompress in the browser when needed, then hand Unity plain blob URLs.
+      function isGzip(bytes) {
+        return bytes.length >= 2 && bytes[0] === 0x1f && bytes[1] === 0x8b;
+      }
+
+      // Hosts like Cloudflare often omit Content-Encoding for precompressed Unity files.
+      // Use gzip (not brotli): Safari's DecompressionStream supports gzip but not 'br'.
       async function loadUnityAsset(url, kind) {
         var response = await fetch(url);
         if (!response.ok) throw new Error("Failed to download " + url + " (" + response.status + ")");
@@ -75,11 +79,14 @@
           isPlainData(bytes);
 
         if (!plain) {
+          if (!isGzip(bytes)) {
+            throw new Error("Unexpected format for " + url + ". Expected gzip-compressed Unity asset.");
+          }
           if (typeof DecompressionStream === "undefined") {
             throw new Error("This browser cannot decompress the game files. Please update Chrome/Edge/Firefox/Safari.");
           }
           buffer = await new Response(
-            new Blob([buffer]).stream().pipeThrough(new DecompressionStream("br"))
+            new Blob([buffer]).stream().pipeThrough(new DecompressionStream("gzip"))
           ).arrayBuffer();
         }
 
@@ -94,9 +101,9 @@
       var loaderUrl = buildUrl + "/newbuild.loader.js";
       var config = {
         arguments: [],
-        dataUrl: buildUrl + "/newbuild.data.br",
-        frameworkUrl: buildUrl + "/newbuild.framework.js.br",
-        codeUrl: buildUrl + "/newbuild.wasm.br",
+        dataUrl: buildUrl + "/newbuild.data.gz",
+        frameworkUrl: buildUrl + "/newbuild.framework.js.gz",
+        codeUrl: buildUrl + "/newbuild.wasm.gz",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "My project",
@@ -122,15 +129,15 @@
       script.src = loaderUrl;
       script.onload = function () {
         Promise.all([
-          loadUnityAsset(buildUrl + "/newbuild.data.br", "data").then(function (url) {
+          loadUnityAsset(config.dataUrl, "data").then(function (url) {
             setProgress(0.2);
             return url;
           }),
-          loadUnityAsset(buildUrl + "/newbuild.framework.js.br", "js").then(function (url) {
+          loadUnityAsset(config.frameworkUrl, "js").then(function (url) {
             setProgress(0.28);
             return url;
           }),
-          loadUnityAsset(buildUrl + "/newbuild.wasm.br", "wasm").then(function (url) {
+          loadUnityAsset(config.codeUrl, "wasm").then(function (url) {
             setProgress(0.35);
             return url;
           }),

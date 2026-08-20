@@ -1,26 +1,30 @@
 /**
- * Serve Unity WebGL .br files with Content-Encoding so the browser decompresses them.
- * Cloudflare Static Assets / _headers alone often omit this header, which breaks Unity.
+ * Optional Content-Encoding for precompressed Unity assets.
+ * The game page also decompresses in-browser (gzip) when hosts omit these headers.
  */
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, env) {
     const url = new URL(request.url)
     const pathname = url.pathname
 
-    // Let the assets binding serve the file, then fix Unity Brotli headers.
-    if (pathname.includes('/game/Build/') && pathname.endsWith('.br')) {
+    if (pathname.includes('/game/Build/') && (pathname.endsWith('.gz') || pathname.endsWith('.br'))) {
       const asset = await env.ASSETS.fetch(request)
       if (!asset.ok) return asset
 
       const headers = new Headers(asset.headers)
-      headers.set('Content-Encoding', 'br')
-      headers.delete('Content-Length') // length is for compressed body; browsers recalculate
+      headers.delete('Content-Length')
 
-      if (pathname.endsWith('.wasm.br')) {
+      if (pathname.endsWith('.gz')) {
+        headers.set('Content-Encoding', 'gzip')
+      } else {
+        headers.set('Content-Encoding', 'br')
+      }
+
+      if (pathname.includes('.wasm.')) {
         headers.set('Content-Type', 'application/wasm')
-      } else if (pathname.endsWith('.js.br')) {
+      } else if (pathname.includes('.js.') || pathname.endsWith('.js.gz') || pathname.endsWith('.js.br')) {
         headers.set('Content-Type', 'application/javascript')
-      } else if (pathname.endsWith('.data.br')) {
+      } else if (pathname.includes('.data.')) {
         headers.set('Content-Type', 'application/octet-stream')
       }
 
