@@ -571,18 +571,62 @@ function StorySection() {
 
 function MiniGameEmbed() {
   const [playing, setPlaying] = useState(false)
+  const [expanded, setExpanded] = useState(false)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+
+  useEffect(() => {
+    const onMsg = (event: MessageEvent) => {
+      const data = event.data
+      if (!data || data.source !== 'wedding-unity' || data.type !== 'fullscreen') return
+      setExpanded(!!data.on)
+    }
+    window.addEventListener('message', onMsg)
+    return () => window.removeEventListener('message', onMsg)
+  }, [])
+
+  useEffect(() => {
+    if (!expanded) return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prevOverflow
+    }
+  }, [expanded])
+
+  const exitExpanded = () => {
+    setExpanded(false)
+    iframeRef.current?.contentWindow?.postMessage(
+      { source: 'wedding-unity', type: 'fullscreen', on: false },
+      '*',
+    )
+  }
 
   return (
     <div
       className="game-placeholder"
-      style={{
-        width: '100%',
-        background: 'rgba(253,248,240,0.85)',
-        border: '1px solid rgba(196,113,79,0.25)',
-        borderRadius: 24,
-        overflow: 'hidden',
-        boxShadow: '0 8px 32px rgba(196,113,79,0.1)',
-      }}
+      style={
+        expanded
+          ? {
+              position: 'fixed',
+              inset: 0,
+              zIndex: 10000,
+              width: '100%',
+              height: '100dvh',
+              background: '#000',
+              border: 'none',
+              borderRadius: 0,
+              overflow: 'hidden',
+              boxShadow: 'none',
+            }
+          : {
+              width: '100%',
+              background: 'rgba(253,248,240,0.85)',
+              border: '1px solid rgba(196,113,79,0.25)',
+              borderRadius: 24,
+              overflow: 'hidden',
+              boxShadow: '0 8px 32px rgba(196,113,79,0.1)',
+            }
+      }
     >
       {!playing ? (
         <div
@@ -628,8 +672,31 @@ function MiniGameEmbed() {
           </button>
         </div>
       ) : (
-        <div style={{ position: 'relative', width: '100%', background: '#1a120c' }}>
+        <div style={{ position: 'relative', width: '100%', height: expanded ? '100%' : undefined, background: '#1a120c' }}>
+          {expanded && (
+            <button
+              type="button"
+              onClick={exitExpanded}
+              aria-label="Exit fullscreen"
+              style={{
+                position: 'absolute',
+                top: 'max(12px, env(safe-area-inset-top))',
+                right: 'max(12px, env(safe-area-inset-right))',
+                zIndex: 2,
+                padding: '10px 14px',
+                borderRadius: 999,
+                border: 'none',
+                background: 'rgba(0,0,0,0.65)',
+                color: '#FDF8F0',
+                fontSize: 14,
+                fontFamily: 'inherit',
+              }}
+            >
+              Exit
+            </button>
+          )}
           <iframe
+            ref={iframeRef}
             title="Maryam & Ahmed mini game"
             src="/game/index.html"
             allow="fullscreen; autoplay; gamepad; keyboard-map"
@@ -637,7 +704,7 @@ function MiniGameEmbed() {
             style={{
               display: 'block',
               width: '100%',
-              height: 'min(85vh, 900px)',
+              height: expanded ? '100%' : 'min(85vh, 900px)',
               border: 'none',
               background: '#000',
             }}

@@ -6,6 +6,24 @@
     <title>Maryam &amp; Ahmed — Mini Game</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
+    <style>
+      html.unity-pseudo-fs, html.unity-pseudo-fs body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+      }
+      html.unity-pseudo-fs #unity-container {
+        width: 100% !important;
+        height: 100% !important;
+        max-width: none !important;
+      }
+      html.unity-pseudo-fs #unity-canvas {
+        width: 100% !important;
+        height: 100% !important;
+      }
+    </style>
   </head>
   <body>
     <div id="unity-container" class="unity-desktop">
@@ -151,9 +169,33 @@
           });
         }).then(function (unityInstance) {
           document.querySelector("#unity-loading-bar").style.display = "none";
+
+          // iPhone Safari does not support the Fullscreen API inside iframes (Android does).
+          // Ask the parent page for a CSS viewport takeover, and still try native fullscreen.
+          var pseudoFs = false;
+          function setPseudoFullscreen(on) {
+            pseudoFs = !!on;
+            document.documentElement.classList.toggle("unity-pseudo-fs", pseudoFs);
+            document.body.classList.toggle("unity-pseudo-fs", pseudoFs);
+            if (window.parent && window.parent !== window) {
+              window.parent.postMessage(
+                { source: "wedding-unity", type: "fullscreen", on: pseudoFs },
+                "*"
+              );
+            }
+            try {
+              unityInstance.SetFullscreen(pseudoFs ? 1 : 0);
+            } catch (err) { /* native FS unsupported */ }
+          }
+
           document.querySelector("#unity-fullscreen-button").onclick = function () {
-            unityInstance.SetFullscreen(1);
+            setPseudoFullscreen(!pseudoFs);
           };
+
+          window.addEventListener("message", function (event) {
+            if (!event.data || event.data.source !== "wedding-unity") return;
+            if (event.data.type === "fullscreen") setPseudoFullscreen(!!event.data.on);
+          });
         }).catch(function (message) {
           console.error(message);
           unityShowBanner(String(message), "error");
